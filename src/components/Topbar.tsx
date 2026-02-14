@@ -1,5 +1,6 @@
-import React from 'react';
-import { Bell, User } from 'lucide-react';
+import React, { useState } from 'react';
+import { Bell, User, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { ThemeToggle } from './ThemeToggle';
 import { useAppStore } from '../store';
 
@@ -8,7 +9,14 @@ interface TopbarProps {
 }
 
 export const Topbar: React.FC<TopbarProps> = ({ title }) => {
-    const { user } = useAppStore();
+    const { user, logout } = useAppStore();
+    const navigate = useNavigate();
+    const [showUserMenu, setShowUserMenu] = useState(false);
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
 
     return (
         <header className="h-16 bg-[rgb(var(--color-surface))] border-b border-[rgb(var(--color-border))] flex items-center justify-between px-6 transition-theme">
@@ -41,16 +49,45 @@ export const Topbar: React.FC<TopbarProps> = ({ title }) => {
                     <Bell className="w-5 h-5 text-[rgb(var(--color-text-secondary))]" />
                 </button>
 
-                {/* User Profile */}
-                <button className="flex items-center gap-2 p-2 rounded-app hover:bg-[rgb(var(--color-card))] transition-theme">
-                    {user?.avatar ? (
-                        <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full" />
-                    ) : (
-                        <div className="w-8 h-8 rounded-full bg-[rgb(var(--color-primary))] flex items-center justify-center">
-                            <User className="w-5 h-5 text-white" />
+                {/* User Profile with Dropdown */}
+                <div className="relative">
+                    <button
+                        onClick={() => setShowUserMenu(!showUserMenu)}
+                        className="flex items-center gap-2 p-2 rounded-app hover:bg-[rgb(var(--color-card))] transition-theme"
+                    >
+                        {user?.avatar ? (
+                            <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full" />
+                        ) : (
+                            <div className="w-8 h-8 rounded-full bg-[rgb(var(--color-primary))] flex items-center justify-center">
+                                <User className="w-5 h-5 text-white" />
+                            </div>
+                        )}
+                        <span className="text-sm font-medium text-[rgb(var(--color-text-primary))] hidden sm:block">
+                            {user?.name || 'User'}
+                        </span>
+                    </button>
+
+                    {/* Dropdown Menu */}
+                    {showUserMenu && (
+                        <div className="absolute right-0 mt-2 w-48 bg-[rgb(var(--color-card))] border border-[rgb(var(--color-border))] rounded-app shadow-app-lg py-2 z-50">
+                            <div className="px-4 py-2 border-b border-[rgb(var(--color-border))]">
+                                <p className="text-sm font-medium text-[rgb(var(--color-text-primary))]">
+                                    {user?.name}
+                                </p>
+                                <p className="text-xs text-[rgb(var(--color-text-secondary))]">
+                                    {user?.email}
+                                </p>
+                            </div>
+                            <button
+                                onClick={handleLogout}
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-500 hover:bg-[rgb(var(--color-surface))] transition-theme"
+                            >
+                                <LogOut className="w-4 h-4" />
+                                Logout
+                            </button>
                         </div>
                     )}
-                </button>
+                </div>
             </div>
         </header>
     );

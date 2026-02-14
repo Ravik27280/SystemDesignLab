@@ -32,15 +32,16 @@ export interface Design {
 
 export interface FlowNode {
     id: string;
-    type: 'loadBalancer' | 'apiService' | 'database' | 'cache' | 'objectStorage' | 'webServer';
+    type?: string; // Optional to match React Flow's Node type
     position: { x: number; y: number };
     data: NodeData;
 }
 
 export interface NodeData {
-    label: string;
+    label?: string; // Optional for React Flow compatibility
     nodeType?: string;
     config?: NodeConfig;
+    [key: string]: unknown; // Index signature for React Flow compatibility
 }
 
 export interface NodeConfig {

@@ -7,6 +7,12 @@ interface AppState {
     theme: Theme;
     toggleTheme: () => void;
 
+    // Authentication
+    token: string | null;
+    setToken: (token: string | null) => void;
+    clearToken: () => void;
+    logout: () => void;
+
     // User
     user: User | null;
     setUser: (user: User | null) => void;
@@ -17,6 +23,7 @@ interface AppState {
 
     // Designs
     designs: Design[];
+    setDesigns: (designs: Design[]) => void;
     addDesign: (design: Design) => void;
     updateDesign: (id: string, design: Partial<Design>) => void;
     deleteDesign: (id: string) => void;
@@ -43,6 +50,18 @@ export const useAppStore = create<AppState>()(
             theme: 'dark',
             toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
 
+            // Authentication
+            token: null,
+            setToken: (token) => set({ token }),
+            clearToken: () => {
+                localStorage.removeItem('token');
+                set({ token: null });
+            },
+            logout: () => {
+                localStorage.removeItem('token');
+                set({ token: null, user: null, designs: [], problems: [] });
+            },
+
             // User
             user: null,
             setUser: (user) => set({ user }),
@@ -53,6 +72,7 @@ export const useAppStore = create<AppState>()(
 
             // Designs
             designs: [],
+            setDesigns: (designs) => set({ designs }),
             addDesign: (design) => set((state) => ({ designs: [...state.designs, design] })),
             updateDesign: (id, updatedDesign) =>
                 set((state) => ({

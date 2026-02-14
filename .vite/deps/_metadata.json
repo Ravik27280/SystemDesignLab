@@ -1,67 +1,73 @@
 {
-  "hash": "1304f489",
+  "hash": "cb0121b9",
   "configHash": "ae888f74",
-  "lockfileHash": "875f1d7b",
-  "browserHash": "e6f46d5a",
+  "lockfileHash": "7d2f4856",
+  "browserHash": "0bac2628",
   "optimized": {
     "react/jsx-dev-runtime": {
       "src": "../../node_modules/react/jsx-dev-runtime.js",
       "file": "react_jsx-dev-runtime.js",
-      "fileHash": "5a26ddec",
+      "fileHash": "ca42fa37",
       "needsInterop": true
     },
     "react": {
       "src": "../../node_modules/react/index.js",
       "file": "react.js",
-      "fileHash": "4281603e",
+      "fileHash": "7e7b98b3",
       "needsInterop": true
     },
     "react-dom/client": {
       "src": "../../node_modules/react-dom/client.js",
       "file": "react-dom_client.js",
-      "fileHash": "edb80678",
+      "fileHash": "17b0c052",
       "needsInterop": true
     },
     "react-router-dom": {
       "src": "../../node_modules/react-router-dom/dist/index.mjs",
       "file": "react-router-dom.js",
-      "fileHash": "7360de10",
+      "fileHash": "edd82dbe",
       "needsInterop": false
     },
     "lucide-react": {
       "src": "../../node_modules/lucide-react/dist/esm/lucide-react.js",
       "file": "lucide-react.js",
-      "fileHash": "402bb012",
+      "fileHash": "808925cf",
       "needsInterop": false
     },
     "zustand": {
       "src": "../../node_modules/zustand/esm/index.mjs",
       "file": "zustand.js",
-      "fileHash": "d06f0d39",
+      "fileHash": "75234efd",
       "needsInterop": false
     },
     "zustand/middleware": {
       "src": "../../node_modules/zustand/esm/middleware.mjs",
       "file": "zustand_middleware.js",
-      "fileHash": "a7963bf2",
+      "fileHash": "0ccb5984",
       "needsInterop": false
     },
     "@xyflow/react": {
       "src": "../../node_modules/@xyflow/react/dist/esm/index.js",
       "file": "@xyflow_react.js",
-      "fileHash": "a4782a5d",
+      "fileHash": "973f9a47",
       "needsInterop": false
     },
     "clsx": {
       "src": "../../node_modules/clsx/dist/clsx.mjs",
       "file": "clsx.js",
-      "fileHash": "a1b014d5",
+      "fileHash": "f64331d4",
       "needsInterop": false
     },
     "tailwind-merge": {
       "src": "../../node_modules/tailwind-merge/dist/bundle-mjs.mjs",
       "file": "tailwind-merge.js",
-      "fileHash": "89c0ff6c",
+      "fileHash": "b2dda30d",
+      "needsInterop": false
+    },
+    "axios": {
+      "src": "../../node_modules/axios/index.js",
+      "file": "axios.js",
+      "fileHash": "82e47f17",
       "needsInterop": false
     }
   },

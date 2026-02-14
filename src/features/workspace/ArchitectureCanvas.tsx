@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
     ReactFlow,
     Background,
@@ -14,6 +14,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { Button } from '../../components/Button';
 import { useAppStore } from '../../store';
+import * as evaluationApi from '../../api/evaluation.api';
 import { CustomNode } from './CustomNode';
 
 const nodeTypes = {
@@ -24,21 +25,20 @@ const nodeTypes = {
 // const initialNodes: Node[] = [];
 
 export const ArchitectureCanvas: React.FC = () => {
-    const { nodes: storeNodes, edges: storeEdges, setNodes, setEdges, setSelectedNode } = useAppStore();
+    const { nodes: storeNodes, edges: storeEdges, setNodes, setEdges, setSelectedNode, currentProblem } = useAppStore();
     const [nodes, setNodesState, onNodesChange] = useNodesState(storeNodes);
     const [edges, setEdgesState, onEdgesChange] = useEdgesState(storeEdges);
+    const [evaluating, setEvaluating] = useState(false);
+    const [evaluationError, setEvaluationError] = useState('');
 
     // Sync with store
     React.useEffect(() => {
         setNodes(nodes as any);
-    }, [nodes, setNodes]);
-
-    React.useEffect(() => {
         setEdges(edges as any);
-    }, [edges, setEdges]);
+    }, [nodes, edges, setNodes, setEdges]);
 
     const onConnect = useCallback(
-        (params: Edge | Connection) => {
+        (params: Connection) => {
             setEdgesState((eds) => addEdge(params, eds));
         },
         [setEdgesState]
@@ -64,10 +64,36 @@ export const ArchitectureCanvas: React.FC = () => {
         setNodesState((nds) => [...nds, newNode]);
     };
 
-    const handleEvaluate = () => {
-        // TODO: Call AI evaluation API
-        console.log('Evaluating design...', { nodes, edges });
-        alert('Evaluation feature will be connected to AI backend');
+    const handleEvaluate = async () => {
+        if (!currentProblem) {
+            alert('Please select a problem first');
+            return;
+        }
+
+        if (nodes.length === 0) {
+            alert('Please add at least one component to your design');
+            return;
+        }
+
+        setEvaluating(true);
+        setEvaluationError('');
+
+        try {
+            const result = await evaluationApi.evaluateDesign({
+                problemId: currentProblem.id,
+                nodes: nodes as any,
+                edges: edges as any,
+            });
+
+            // Feedback will display in FeedbackPanel via store
+            console.log('Evaluation result:', result);
+            alert('Design evaluated! Check the Feedback panel on the right.');
+        } catch (err: any) {
+            setEvaluationError(err.message || 'Failed to evaluate design');
+            alert('Failed to evaluate design: ' + (err.message || 'Unknown error'));
+        } finally {
+            setEvaluating(false);
+        }
     };
 
     return (
@@ -120,7 +146,9 @@ export const ArchitectureCanvas: React.FC = () => {
 
             {/* Evaluate Button */}
             <div className="absolute bottom-4 right-4 z-10">
-                <Button onClick={handleEvaluate}>Evaluate Design</Button>
+                <Button onClick={handleEvaluate} disabled={evaluating}>
+                    {evaluating ? 'Evaluating...' : 'Evaluate Design'}
+                </Button>
             </div>
 
             {/* React Flow Canvas */}

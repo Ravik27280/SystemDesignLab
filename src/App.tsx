@@ -1,10 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { MainLayout } from './layouts/MainLayout';
 import { LandingPage } from './pages/LandingPage';
+import { LoginPage } from './pages/LoginPage';
+import { SignupPage } from './pages/SignupPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ProblemsPage } from './pages/ProblemsPage';
 import { WorkspacePage } from './pages/WorkspacePage';
 import { PricingPage } from './pages/PricingPage';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 // Placeholder pages
 const DesignsPage = () => (
@@ -39,12 +42,14 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Landing page (no layout) */}
+        {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
 
-        {/* App routes (with layout) */}
-        <Route element={<MainLayout />}>
+        {/* Protected app routes (with layout) */}
+        <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/problems" element={<ProblemsPage />} />
           <Route path="/designs" element={<DesignsPage />} />
