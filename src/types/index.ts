@@ -12,10 +12,16 @@ export interface Problem {
     id: string;
     title: string;
     description: string;
-    difficulty: 'easy' | 'medium' | 'hard';
-    requirements: string[];
-    estimatedTime: string;
-    category: string;
+    difficulty: 'Easy' | 'Medium' | 'Hard';
+    functionalRequirements: string[];
+    nonFunctionalRequirements: string[];
+    scale: {
+        users?: string;
+        requests?: string;
+        data?: string;
+    };
+    isPro: boolean;
+    createdAt?: string;
 }
 
 export interface Design {

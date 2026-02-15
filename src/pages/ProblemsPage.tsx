@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
@@ -40,11 +40,11 @@ export const ProblemsPage: React.FC = () => {
 
     const difficultyVariant = (difficulty: string) => {
         switch (difficulty) {
-            case 'easy':
+            case 'Easy':
                 return 'success';
-            case 'medium':
+            case 'Medium':
                 return 'warning';
-            case 'hard':
+            case 'Hard':
                 return 'error';
             default:
                 return 'default';
@@ -105,11 +105,14 @@ export const ProblemsPage: React.FC = () => {
                                             {problem.description}
                                         </p>
                                         <div className="flex items-center gap-4 text-sm text-[rgb(var(--color-text-secondary))]">
-                                            <span className="flex items-center gap-1">
-                                                <Clock className="w-4 h-4" />
-                                                {problem.estimatedTime}
+                                            <span>
+                                                {problem.functionalRequirements.length + problem.nonFunctionalRequirements.length} requirements
                                             </span>
-                                            <span>{problem.category}</span>
+                                            {problem.isPro && (
+                                                <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-500 rounded text-xs font-medium">
+                                                    PRO
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                     <Button onClick={() => handleStartProblem(problem)}>

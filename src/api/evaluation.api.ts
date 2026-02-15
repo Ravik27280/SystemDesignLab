@@ -1,10 +1,9 @@
 import apiClient from './client';
-import type { FlowNode, FlowEdge, FeedbackResult } from '../types';
+import type { FeedbackResult } from '../types';
 
 export interface EvaluationRequest {
+    designId: string;
     problemId: string;
-    nodes: FlowNode[];
-    edges: FlowEdge[];
 }
 
 export interface EvaluationResponse {

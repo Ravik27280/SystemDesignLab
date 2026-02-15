@@ -61,7 +61,7 @@ export const PricingPage: React.FC = () => {
                             }
                         >
                             {plan.highlighted && (
-                                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                                <div className="absolute -top-9 left-1/2 transform -translate-x-1/2">
                                     <Badge variant="primary">Most Popular</Badge>
                                 </div>
                             )}

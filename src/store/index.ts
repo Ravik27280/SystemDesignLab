@@ -100,6 +100,8 @@ export const useAppStore = create<AppState>()(
                 theme: state.theme,
                 user: state.user,
                 designs: state.designs,
+                currentProblem: state.currentProblem,
+                problems: state.problems,
             }),
         }
     )

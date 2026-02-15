@@ -56,8 +56,10 @@ function App() {
           <Route path="/practice" element={<PracticeModePage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/workspace/:problemId" element={<WorkspacePage />} />
         </Route>
+
+        {/* Workspace route - fullscreen without layout */}
+        <Route path="/workspace/:problemId" element={<ProtectedRoute><WorkspacePage /></ProtectedRoute>} />
 
         {/* Redirect unknown routes */}
         <Route path="*" element={<Navigate to="/" replace />} />

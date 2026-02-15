@@ -6,10 +6,12 @@ import { ArchitectureCanvas } from '../features/workspace/ArchitectureCanvas';
 import { ConfigurationPanel } from '../features/workspace/ConfigurationPanel';
 import { FeedbackPanel } from '../features/workspace/FeedbackPanel';
 import { useAppStore } from '../store';
+import * as designsApi from '../api/designs.api';
 
 export const WorkspacePage: React.FC = () => {
     const { problemId } = useParams<{ problemId: string }>();
-    const { currentProblem, problems } = useAppStore();
+    const { currentProblem, problems, setNodes, setEdges } = useAppStore();
+    const [isLoadingDesign, setIsLoadingDesign] = React.useState(true);
 
     // Load problem if not already loaded
     React.useEffect(() => {
@@ -21,6 +23,39 @@ export const WorkspacePage: React.FC = () => {
         }
     }, [problemId, currentProblem, problems]);
 
+    // Load existing design for this problem (if any)
+    React.useEffect(() => {
+        const loadDesign = async () => {
+            if (!problemId) return;
+
+            try {
+                setIsLoadingDesign(true);
+                const existingDesign = await designsApi.getDesignByProblemId(problemId);
+
+                if (existingDesign) {
+                    // Load existing design into canvas
+                    setNodes(existingDesign.nodes);
+                    setEdges(existingDesign.edges);
+                    console.log('✅ Loaded existing design:', existingDesign);
+                } else {
+                    // No existing design - start with empty canvas
+                    setNodes([]);
+                    setEdges([]);
+                    console.log('ℹ️ No existing design found, starting fresh');
+                }
+            } catch (error) {
+                console.error('❌ Error loading design:', error);
+                // Start with empty canvas on error
+                setNodes([]);
+                setEdges([]);
+            } finally {
+                setIsLoadingDesign(false);
+            }
+        };
+
+        loadDesign();
+    }, [problemId, setNodes, setEdges]);
+
     if (!currentProblem) {
         return (
             <div className="flex items-center justify-center h-full">
@@ -29,12 +64,22 @@ export const WorkspacePage: React.FC = () => {
         );
     }
 
+    if (isLoadingDesign) {
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <p className="text-[rgb(var(--color-text-secondary))]">Loading workspace...</p>
+            </div>
+        );
+    }
+
     return (
-        <WorkspaceLayout
-            left={<RequirementsPanel problem={currentProblem} />}
-            center={<ArchitectureCanvas />}
-            right={<ConfigurationPanel />}
-            bottom={<FeedbackPanel />}
-        />
+        <div className="h-screen w-full bg-[rgb(var(--color-bg))] transition-theme">
+            <WorkspaceLayout
+                left={<RequirementsPanel problem={currentProblem} />}
+                center={<ArchitectureCanvas />}
+                right={<ConfigurationPanel />}
+                bottom={<FeedbackPanel />}
+            />
+        </div>
     );
 };
