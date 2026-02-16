@@ -39,11 +39,12 @@ const colorMap: Record<string, string> = {
     analytics: '#A855F7',
 };
 
-export const CustomNode: React.FC<{ data: { label: string; nodeType: string }; id: string }> = ({ data, id }) => {
+export const CustomNode: React.FC<{ data: { label: string; nodeType: string; isActive?: boolean }; id: string }> = ({ data, id }) => {
     const Icon = iconMap[data.nodeType] || Server;
     const color = colorMap[data.nodeType] || '#3B82F6';
     const [isHovered, setIsHovered] = useState(false);
     const { setNodes, setEdges } = useReactFlow();
+    const isActive = data.isActive || false;
 
     const handleDelete = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -55,8 +56,12 @@ export const CustomNode: React.FC<{ data: { label: string; nodeType: string }; i
 
     return (
         <div
-            className="px-4 py-3 rounded-app shadow-app-lg border-2 bg-[rgb(var(--color-card))] min-w-[140px] relative"
-            style={{ borderColor: color }}
+            className={`px-4 py-3 rounded-app shadow-app-lg border-2 bg-[rgb(var(--color-card))] min-w-[140px] relative transition-all duration-300 ${isActive ? 'scale-110 shadow-2xl' : ''
+                }`}
+            style={{
+                borderColor: color,
+                boxShadow: isActive ? `0 0 20px ${color}, 0 0 40px ${color}60` : undefined,
+            }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >

@@ -15,9 +15,14 @@ import { Button } from '../../components/Button';
 import { useAppStore } from '../../store';
 import * as evaluationApi from '../../api/evaluation.api';
 import { CustomNode } from './CustomNode';
+import { AnimatedEdge } from './AnimatedEdge.tsx';
 
 const nodeTypes = {
     custom: CustomNode,
+};
+
+const edgeTypes = {
+    animated: AnimatedEdge,
 };
 
 // Initial node templates (not used in this version)
@@ -32,6 +37,11 @@ export const ArchitectureCanvas: React.FC = () => {
     // History for undo/redo
     const [history, setHistory] = useState<{ nodes: Node[]; edges: any[] }[]>([]);
     const [historyIndex, setHistoryIndex] = useState(-1);
+
+    // Animation state
+    const [isAnimating, setIsAnimating] = useState(false);
+    const [activeNodes, setActiveNodes] = useState<Set<string>>(new Set());
+    const [activeEdges, setActiveEdges] = useState<Set<string>>(new Set());
 
     // Sync with store
     React.useEffect(() => {
@@ -116,6 +126,97 @@ export const ArchitectureCanvas: React.FC = () => {
         }
     };
 
+    // Sleep utility for animation timing
+    const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+    // Animate request flow through the architecture
+    const animateRequestFlow = async () => {
+        setIsAnimating(true);
+        setActiveNodes(new Set());
+        setActiveEdges(new Set());
+
+        // Find entry points (client nodes, or any node without incoming edges)
+        const entryNodes = nodes.filter(node => {
+            const hasIncoming = edges.some(edge => edge.target === node.id);
+            return !hasIncoming || node.data.nodeType === 'client';
+        });
+
+        if (entryNodes.length === 0 && nodes.length > 0) {
+            // If no clear entry point, use first node
+            entryNodes.push(nodes[0]);
+        }
+
+        // Find load balancer nodes
+        const loadBalancers = nodes.filter(n => n.data.nodeType === 'loadBalancer');
+        console.log('Load balancers found:', loadBalancers.length);
+
+        // Simulate multiple parallel requests (3 requests)
+        const requestCount = 3;
+
+        for (let req = 0; req < requestCount; req++) {
+            // Slight delay between request starts
+            if (req > 0) await sleep(600);
+
+            // Start request animation (don't await - run in parallel)
+            traverseFromNode(entryNodes, loadBalancers, req);
+        }
+
+        // Wait for all animations to complete
+        await sleep(5000);
+
+        setIsAnimating(false);
+        setActiveNodes(new Set());
+        setActiveEdges(new Set());
+    };
+
+    // Traverse from entry nodes through the architecture
+    const traverseFromNode = async (startNodes: Node[], loadBalancers: Node[], requestId: number) => {
+        const visited = new Set<string>();
+        const queue: string[] = startNodes.map(n => n.id);
+
+        while (queue.length > 0) {
+            const nodeId = queue.shift()!;
+
+            if (visited.has(nodeId)) continue;
+            visited.add(nodeId);
+
+            // Activate node
+            setActiveNodes(prev => new Set([...prev, nodeId]));
+            await sleep(800);
+
+            // Find outgoing edges
+            const outEdges = edges.filter(e => e.source === nodeId);
+
+            // If this is a load balancer, distribute to ONE target (simulate round-robin)
+            const currentNode = nodes.find(n => n.id === nodeId);
+            if (currentNode?.data.nodeType === 'loadBalancer' && outEdges.length > 1) {
+                // Select one edge based on requestId (round-robin simulation)
+                const selectedEdge = outEdges[requestId % outEdges.length];
+
+                // Activate selected edge
+                setActiveEdges(prev => new Set([...prev, selectedEdge.id]));
+                await sleep(600);
+
+                queue.push(selectedEdge.target);
+            } else {
+                // Normal case: activate all outgoing edges
+                for (const edge of outEdges) {
+                    setActiveEdges(prev => new Set([...prev, edge.id]));
+                    await sleep(400);
+                    queue.push(edge.target);
+                }
+            }
+
+            // Deactivate node after processing
+            await sleep(600);
+            setActiveNodes(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(nodeId);
+                return newSet;
+            });
+        }
+    };
+
     const handleEvaluate = async () => {
         if (!currentProblem) {
             alert('Please select a problem first');
@@ -130,6 +231,9 @@ export const ArchitectureCanvas: React.FC = () => {
         setEvaluating(true);
 
         try {
+            // Start flow animation
+            const animationPromise = animateRequestFlow();
+
             // First, save the design to get a designId
             const designsApi = await import('../../api/designs.api');
             const savedDesign = await designsApi.saveDesign({
@@ -138,17 +242,19 @@ export const ArchitectureCanvas: React.FC = () => {
                 edges: edges as any,
             });
 
-            // Now evaluate with the designId
-            const result = await evaluationApi.evaluateDesign({
+            // Now evaluate the design with the designId
+            await evaluationApi.evaluateDesign({
                 designId: savedDesign.id!,
                 problemId: currentProblem.id,
             });
 
-            // Feedback will display in FeedbackPanel via store
-            console.log('Evaluation result:', result);
-            alert('Design evaluated! Check the Feedback panel on the right.');
-        } catch (err: any) {
-            alert('Failed to evaluate design: ' + (err.message || 'Unknown error'));
+            // Wait for animation to complete
+            await animationPromise;
+
+            alert('Design evaluated successfully! Check the Feedback panel for results.');
+        } catch (error: any) {
+            console.error('Evaluation failed:', error);
+            alert(`Evaluation failed: ${error.message}`);
         } finally {
             setEvaluating(false);
         }
@@ -202,13 +308,21 @@ export const ArchitectureCanvas: React.FC = () => {
 
             {/* React Flow Canvas */}
             <ReactFlow
-                nodes={nodes}
-                edges={edges}
+                nodes={nodes.map(node => ({
+                    ...node,
+                    data: { ...node.data, isActive: activeNodes.has(node.id) }
+                }))}
+                edges={edges.map(edge => ({
+                    ...edge,
+                    type: 'animated',
+                    data: { isActive: activeEdges.has(edge.id) }
+                }))}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
                 onNodeClick={onNodeClick}
                 nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
                 deleteKeyCode="Delete"
                 fitView
             >
