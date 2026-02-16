@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import {
     ReactFlow,
     Background,
@@ -16,6 +16,8 @@ import { useAppStore } from '../../store';
 import * as evaluationApi from '../../api/evaluation.api';
 import { CustomNode } from './CustomNode';
 import { AnimatedEdge } from './AnimatedEdge.tsx';
+import { ComponentPalette } from './ComponentPalette';
+import { Play, Square, RotateCcw, RotateCw, Trash2 } from 'lucide-react';
 
 const nodeTypes = {
     custom: CustomNode,
@@ -42,6 +44,7 @@ export const ArchitectureCanvas: React.FC = () => {
     const [isAnimating, setIsAnimating] = useState(false);
     const [activeNodes, setActiveNodes] = useState<Set<string>>(new Set());
     const [activeEdges, setActiveEdges] = useState<Set<string>>(new Set());
+    const abortControllerRef = useRef<AbortController | null>(null);
 
     // Sync with store
     React.useEffect(() => {
@@ -126,55 +129,99 @@ export const ArchitectureCanvas: React.FC = () => {
         }
     };
 
-    // Sleep utility for animation timing
-    const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    // Sleep utility for animation timing with abort check
+    const sleep = (ms: number, signal?: AbortSignal) => new Promise((resolve, reject) => {
+        if (signal?.aborted) return reject(new DOMException('Aborted', 'AbortError'));
 
-    // Animate request flow through the architecture
-    const animateRequestFlow = async () => {
-        setIsAnimating(true);
-        setActiveNodes(new Set());
-        setActiveEdges(new Set());
+        const timeout = setTimeout(() => resolve(true), ms);
 
-        // Find entry points (client nodes, or any node without incoming edges)
-        const entryNodes = nodes.filter(node => {
-            const hasIncoming = edges.some(edge => edge.target === node.id);
-            return !hasIncoming || node.data.nodeType === 'client';
-        });
-
-        if (entryNodes.length === 0 && nodes.length > 0) {
-            // If no clear entry point, use first node
-            entryNodes.push(nodes[0]);
+        if (signal) {
+            signal.addEventListener('abort', () => {
+                clearTimeout(timeout);
+                reject(new DOMException('Aborted', 'AbortError'));
+            });
         }
+    });
 
-        // Find load balancer nodes
-        const loadBalancers = nodes.filter(n => n.data.nodeType === 'loadBalancer');
-        console.log('Load balancers found:', loadBalancers.length);
-
-        // Simulate multiple parallel requests (3 requests)
-        const requestCount = 3;
-
-        for (let req = 0; req < requestCount; req++) {
-            // Slight delay between request starts
-            if (req > 0) await sleep(600);
-
-            // Start request animation (don't await - run in parallel)
-            traverseFromNode(entryNodes, loadBalancers, req);
+    const stopAnimation = () => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
         }
-
-        // Wait for all animations to complete
-        await sleep(5000);
-
         setIsAnimating(false);
         setActiveNodes(new Set());
         setActiveEdges(new Set());
     };
 
+    // Animate request flow through the architecture
+    const animateRequestFlow = async () => {
+        // Reset previous animation
+        stopAnimation();
+
+        // New abort controller
+        abortControllerRef.current = new AbortController();
+        const signal = abortControllerRef.current.signal;
+
+        setIsAnimating(true);
+        setActiveNodes(new Set());
+        setActiveEdges(new Set());
+
+        try {
+            // Find entry points (client nodes, or any node without incoming edges)
+            const entryNodes = nodes.filter(node => {
+                const hasIncoming = edges.some(edge => edge.target === node.id);
+                return !hasIncoming || node.data.nodeType === 'client';
+            });
+
+            if (entryNodes.length === 0 && nodes.length > 0) {
+                // If no clear entry point, use first node
+                entryNodes.push(nodes[0]);
+            }
+
+
+
+            // Simulate multiple parallel requests (3 requests)
+            const requestCount = 3;
+            const promises = [];
+
+            for (let req = 0; req < requestCount; req++) {
+                // Slight delay between request starts
+                if (req > 0) await sleep(600, signal);
+
+                // Start request animation
+                promises.push(traverseFromNode(entryNodes, req, signal));
+            }
+
+            // Wait for all animations to complete
+            await Promise.all(promises);
+
+            // Wait a bit before clearing
+            await sleep(2000, signal);
+
+        } catch (error: any) {
+            if (error.name === 'AbortError') {
+                console.log('Animation stopped by user');
+            } else {
+                console.error('Animation error:', error);
+            }
+        } finally {
+            if (!signal.aborted) {
+                setIsAnimating(false);
+                setActiveNodes(new Set());
+                setActiveEdges(new Set());
+                abortControllerRef.current = null;
+            }
+        }
+    };
+
     // Traverse from entry nodes through the architecture
-    const traverseFromNode = async (startNodes: Node[], loadBalancers: Node[], requestId: number) => {
+    const traverseFromNode = async (startNodes: Node[], requestId: number, signal: AbortSignal) => {
         const visited = new Set<string>();
         const queue: string[] = startNodes.map(n => n.id);
 
         while (queue.length > 0) {
+            if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+
             const nodeId = queue.shift()!;
 
             if (visited.has(nodeId)) continue;
@@ -182,7 +229,7 @@ export const ArchitectureCanvas: React.FC = () => {
 
             // Activate node
             setActiveNodes(prev => new Set([...prev, nodeId]));
-            await sleep(800);
+            await sleep(800, signal);
 
             // Find outgoing edges
             const outEdges = edges.filter(e => e.source === nodeId);
@@ -195,27 +242,68 @@ export const ArchitectureCanvas: React.FC = () => {
 
                 // Activate selected edge
                 setActiveEdges(prev => new Set([...prev, selectedEdge.id]));
-                await sleep(600);
+                await sleep(600, signal);
 
                 queue.push(selectedEdge.target);
             } else {
                 // Normal case: activate all outgoing edges
                 for (const edge of outEdges) {
+                    if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
                     setActiveEdges(prev => new Set([...prev, edge.id]));
-                    await sleep(400);
+                    await sleep(400, signal);
                     queue.push(edge.target);
                 }
             }
 
-            // Deactivate node after processing
-            await sleep(600);
+            // Deactivate node after processing (simulating "passing through")
+            // await sleep(600, signal);
             setActiveNodes(prev => {
                 const newSet = new Set(prev);
-                newSet.delete(nodeId);
+                // Keep active? Or flicker? Let's keep it active for a bit then off
+                // newSet.delete(nodeId);
                 return newSet;
             });
+
+            // Create a separate "cleanup" task for this node to turn off after delay
+            setTimeout(() => {
+                if (!signal.aborted) {
+                    setActiveNodes(prev => {
+                        const newSet = new Set(prev);
+                        newSet.delete(nodeId);
+                        return newSet;
+                    });
+                }
+            }, 600);
         }
     };
+
+    // Handle dropping nodes from palette
+    const onDragOver = useCallback((event: React.DragEvent) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+    }, []);
+
+    const onDrop = useCallback(
+        (event: React.DragEvent) => {
+            event.preventDefault();
+
+            const type = event.dataTransfer.getData('application/reactflow/type');
+            const label = event.dataTransfer.getData('application/reactflow/label');
+
+            if (typeof type === 'undefined' || !type) {
+                return;
+            }
+
+            // Project the position to canvas coordinates
+            // Simple approximation for now as we don't have the react flow instance ref readily available 
+            // without wrapping in ReactFlowProvider. 
+            // For now, random position around the center or cursor if possible.
+            // Ideally we use functionality from `useReactFlow` hook but we are inside the component.
+            // Let's just add it at a default position + some random offset
+            addNode(type, label);
+        },
+        [setNodesState]
+    );
 
     const handleEvaluate = async () => {
         if (!currentProblem) {
@@ -232,7 +320,7 @@ export const ArchitectureCanvas: React.FC = () => {
 
         try {
             // Start flow animation
-            const animationPromise = animateRequestFlow();
+            animateRequestFlow(); // Don't await, let it run
 
             // First, save the design to get a designId
             const designsApi = await import('../../api/designs.api');
@@ -243,66 +331,64 @@ export const ArchitectureCanvas: React.FC = () => {
             });
 
             // Now evaluate the design with the designId
-            await evaluationApi.evaluateDesign({
+            const result = await evaluationApi.evaluateDesign({
                 designId: savedDesign.id!,
                 problemId: currentProblem.id,
             });
 
-            // Wait for animation to complete
-            await animationPromise;
+            // Update store with feedback
+            useAppStore.getState().setFeedback(result);
 
-            alert('Design evaluated successfully! Check the Feedback panel for results.');
+            // alert('Design evaluated successfully! Check the Feedback panel for results.');
         } catch (error: any) {
             console.error('Evaluation failed:', error);
             alert(`Evaluation failed: ${error.message}`);
+            stopAnimation();
         } finally {
             setEvaluating(false);
         }
     };
 
     return (
-        <div className="h-full w-full relative bg-[rgb(var(--color-bg))]">
-            {/* Toolbar */}
-            <div className="absolute top-4 left-4 z-10 max-w-2xl">
-                <div className="bg-[rgb(var(--color-card))] rounded-app shadow-app-lg p-3 space-y-2">
-                    {/* Control buttons */}
-                    <div className="flex gap-2 pb-2 border-b border-[rgb(var(--color-border))]">
-                        <Button size="sm" variant="secondary" onClick={handleUndo} disabled={historyIndex <= 0}>
-                            ↶ Undo
-                        </Button>
-                        <Button size="sm" variant="secondary" onClick={handleRedo} disabled={historyIndex >= history.length - 1}>
-                            ↷ Redo
-                        </Button>
-                        <Button size="sm" variant="secondary" onClick={handleClearAll}>
-                            🗑️ Clear All
-                        </Button>
-                    </div>
-
-                    {/* Node type buttons */}
-                    <div className="text-xs font-semibold text-[rgb(var(--color-text-secondary))] mb-1">Components</div>
-                    <div className="flex gap-2 flex-wrap">
-                        <Button size="sm" variant="secondary" onClick={() => addNode('client', 'Client')}>+ Client</Button>
-                        <Button size="sm" variant="secondary" onClick={() => addNode('cdn', 'CDN')}>+ CDN</Button>
-                        <Button size="sm" variant="secondary" onClick={() => addNode('apiGateway', 'API Gateway')}>+ API Gateway</Button>
-                        <Button size="sm" variant="secondary" onClick={() => addNode('loadBalancer', 'Load Balancer')}>+ Load Balancer</Button>
-                        <Button size="sm" variant="secondary" onClick={() => addNode('webServer', 'Web Server')}>+ Web Server</Button>
-                        <Button size="sm" variant="secondary" onClick={() => addNode('apiService', 'API Service')}>+ API Service</Button>
-                        <Button size="sm" variant="secondary" onClick={() => addNode('auth', 'Auth Service')}>+ Auth Service</Button>
-                        <Button size="sm" variant="secondary" onClick={() => addNode('database', 'Database')}>+ Database</Button>
-                        <Button size="sm" variant="secondary" onClick={() => addNode('cache', 'Cache')}>+ Cache</Button>
-                        <Button size="sm" variant="secondary" onClick={() => addNode('messageQueue', 'Message Queue')}>+ Message Queue</Button>
-                        <Button size="sm" variant="secondary" onClick={() => addNode('search', 'Search Service')}>+ Search</Button>
-                        <Button size="sm" variant="secondary" onClick={() => addNode('objectStorage', 'Object Storage')}>+ Object Storage</Button>
-                        <Button size="sm" variant="secondary" onClick={() => addNode('notification', 'Notification')}>+ Notification</Button>
-                        <Button size="sm" variant="secondary" onClick={() => addNode('analytics', 'Analytics')}>+ Analytics</Button>
-                    </div>
+        <div className="h-full w-full relative bg-[rgb(var(--color-bg))] flex" onDragOver={onDragOver} onDrop={onDrop}>
+            {/* Left Toolbar / Palette */}
+            <div className="absolute top-4 left-4 z-10 flex flex-col gap-4 pointer-events-none max-h-[calc(100%-2rem)]">
+                {/* Control buttons */}
+                <div className="bg-[rgb(var(--color-card))] rounded-app shadow-app-lg p-1.5 flex gap-1 pointer-events-auto border border-[rgb(var(--color-border))]">
+                    <Button size="icon" variant="ghost" onClick={handleUndo} disabled={historyIndex <= 0} title="Undo">
+                        <RotateCcw className="w-4 h-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" onClick={handleRedo} disabled={historyIndex >= history.length - 1} title="Redo">
+                        <RotateCw className="w-4 h-4" />
+                    </Button>
+                    <div className="w-[1px] bg-[rgb(var(--color-border))] mx-1" />
+                    <Button size="icon" variant="ghost" onClick={handleClearAll} title="Clear All" className="text-rose-500 hover:text-rose-600 hover:bg-rose-50">
+                        <Trash2 className="w-4 h-4" />
+                    </Button>
                 </div>
+
+                {/* Component Palette using the new component */}
+                <ComponentPalette onAddNode={addNode} />
             </div>
 
-            {/* Evaluate Button */}
-            <div className="absolute bottom-4 right-4 z-10">
-                <Button onClick={handleEvaluate} disabled={evaluating}>
-                    {evaluating ? 'Evaluating...' : 'Evaluate Design'}
+            {/* Evaluate Button & Stop Controls */}
+            <div className="absolute bottom-4 right-4 z-10 flex gap-2">
+                {isAnimating && (
+                    <Button onClick={stopAnimation} variant="danger" className="shadow-lg animate-in fade-in slide-in-from-bottom-2">
+                        <Square className="w-4 h-4 mr-2 fill-current" />
+                        Stop Animation
+                    </Button>
+                )}
+
+                <Button onClick={handleEvaluate} disabled={evaluating} className="shadow-lg">
+                    {evaluating ? (
+                        <>Processing...</>
+                    ) : (
+                        <>
+                            <Play className="w-4 h-4 mr-2 fill-current" />
+                            Evaluate Design
+                        </>
+                    )}
                 </Button>
             </div>
 
@@ -325,10 +411,11 @@ export const ArchitectureCanvas: React.FC = () => {
                 edgeTypes={edgeTypes}
                 deleteKeyCode="Delete"
                 fitView
+                className="bg-[rgb(var(--color-bg-tertiary))]"
             >
-                <Background />
-                <Controls />
-                <MiniMap />
+                <Background color="rgb(var(--color-border))" gap={16} />
+                <Controls showInteractive={false} className="bg-[rgb(var(--color-card))] border border-[rgb(var(--color-border))] shadow-app-sm rounded-lg overflow-hidden" />
+                <MiniMap position="top-right" className="bg-[rgb(var(--color-card))] border border-[rgb(var(--color-border))] shadow-app-sm rounded-lg overflow-hidden" zoomable pannable />
             </ReactFlow>
         </div>
     );

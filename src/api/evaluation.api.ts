@@ -8,9 +8,7 @@ export interface EvaluationRequest {
 
 export interface EvaluationResponse {
     success: boolean;
-    data: {
-        evaluation: FeedbackResult;
-    };
+    data: FeedbackResult;
     message: string;
 }
 
@@ -19,5 +17,5 @@ export interface EvaluationResponse {
  */
 export const evaluateDesign = async (data: EvaluationRequest): Promise<FeedbackResult> => {
     const response = await apiClient.post<EvaluationResponse>('/evaluate', data);
-    return response.data.data.evaluation;
+    return response.data.data;
 };

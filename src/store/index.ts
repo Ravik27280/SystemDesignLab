@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User, Problem, Design, Theme, FlowNode, FlowEdge } from '../types';
+import type { User, Problem, Design, Theme, FlowNode, FlowEdge, FeedbackResult } from '../types';
 
 interface AppState {
     // Theme
@@ -41,6 +41,10 @@ interface AppState {
     // Selected node for configuration panel
     selectedNode: FlowNode | null;
     setSelectedNode: (node: FlowNode | null) => void;
+
+    // Evaluation Feedback
+    feedback: FeedbackResult | null;
+    setFeedback: (feedback: FeedbackResult | null) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -93,6 +97,10 @@ export const useAppStore = create<AppState>()(
             // Selected node
             selectedNode: null,
             setSelectedNode: (node) => set({ selectedNode: node }),
+
+            // Evaluation Feedback
+            feedback: null,
+            setFeedback: (feedback) => set({ feedback }),
         }),
         {
             name: 'systemdesignlab-storage',
@@ -102,6 +110,7 @@ export const useAppStore = create<AppState>()(
                 designs: state.designs,
                 currentProblem: state.currentProblem,
                 problems: state.problems,
+                feedback: state.feedback,
             }),
         }
     )

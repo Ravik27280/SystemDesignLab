@@ -37,10 +37,18 @@ export const WorkspacePage: React.FC = () => {
                     setNodes(existingDesign.nodes);
                     setEdges(existingDesign.edges);
                     console.log('✅ Loaded existing design:', existingDesign);
+
+                    // Load feedback if available
+                    if (existingDesign.feedback) {
+                        useAppStore.getState().setFeedback(existingDesign.feedback);
+                    } else {
+                        useAppStore.getState().setFeedback(null);
+                    }
                 } else {
                     // No existing design - start with empty canvas
                     setNodes([]);
                     setEdges([]);
+                    useAppStore.getState().setFeedback(null);
                     console.log('ℹ️ No existing design found, starting fresh');
                 }
             } catch (error) {
