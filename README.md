@@ -1,73 +1,101 @@
-# React + TypeScript + Vite
+# SystemDesignLab Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+SystemDesignLab is a modern, interactive SaaS platform for practicing and evaluating system design architectures. This is the frontend application built with React, TypeScript, and Vite.
 
-Currently, two official plugins are available:
+## 🚀 Key Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+*   **Interactive Design Canvas**: Drag-and-drop interface powered by React Flow to build system architectures.
+*   **AI-Powered Evaluation**: Get instant feedback on your design's scalability, bottleneck analysis, and best practices using **Google Gemini AI**.
+*   **Flow Animation**: Visualize request flow through your architecture with animated edges and nodes.
+*   **User Authentication**: Seamless sign-up and login with Google OAuth integration.
+*   **Role-Based Access**: Access different levels of system design problems (Free vs. Pro).
+*   **Responsive UI**: Modern, clean interface designed with Tailwind CSS.
 
-## React Compiler
+## 🛠️ Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Framework**: React 18+
+- **Build Tool**: Vite
+- **Language**: TypeScript
+- **State Management**: Zustand
+- **Diagramming**: React Flow (@xyflow/react)
+- **Styling**: Tailwind CSS
+- **Routing**: React Router DOM v6
+- **Icons**: Lucide React
+- **HTTP Client**: Axios
 
-## Expanding the ESLint configuration
+## 📁 Project Structure
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```
+src/
+├── api/             # API client and service calls
+├── components/      # Reusable UI components (Button, Input, Panel, etc.)
+├── features/        # Feature-based modules
+│   └── workspace/   # Core design workspace (Canvas, Palette, Feedback)
+├── pages/           # Application pages (Login, Signup, Workspace, Dashboard)
+├── store/           # Global state (Zustand store)
+├── types/           # TypeScript interfaces
+├── hooks/           # Custom React hooks
+└── utils/           # Helper functions
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 🛠️ Setup Instructions
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### 1. Prerequisites
+- Node.js (v18+)
+- Backend running (see [Backend README](../system-design-lab-backend/README.md))
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 2. Install Dependencies
+
+```bash
+npm install
 ```
+
+### 3. Configure Environment Variables
+
+Create a `.env` file in the root directory:
+
+```env
+VITE_API_BASE_URL=http://localhost:5000/api
+VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
+```
+
+**Note**: 
+- `VITE_API_BASE_URL` should point to your backend server.
+- `VITE_GOOGLE_CLIENT_ID` must match the one used in the backend.
+
+### 4. Run Development Server
+
+```bash
+npm run dev
+```
+
+The app will be available at `http://localhost:5173`
+
+### 5. Build for Production
+
+```bash
+npm run build
+```
+
+This will generate a `dist` folder containing the static assets ready for deployment.
+
+### 6. Preview Production Build
+
+```bash
+npm run preview
+```
+
+## 🎨 Design System
+
+We use a custom design system with Tailwind CSS variables for theming.
+- **Colors**: Defined in `index.css` as CSS variables (e.g., `--color-primary`, `--color-bg-secondary`).
+- **Components**: Found in `src/components`, styled with `clsx` and `tailwind-merge` for flexibility.
+
+## 🧪 Deployment
+
+This project can be easily deployed to Vercel, Netlify, or any static site host.
+Ensure you set the environment variables in your deployment platform settings.
+
+## 📄 License
+
+MIT
