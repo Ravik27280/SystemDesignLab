@@ -1,8 +1,11 @@
-import React from 'react';
-import { Check } from 'lucide-react';
+import React, { useState } from 'react';
+import { Check, Loader2 } from 'lucide-react';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Badge } from '../components/Badge';
+import { useAppStore } from '../store';
+import { upgradeToPro } from '../api/profile.api';
+import { useNavigate } from 'react-router-dom';
 
 const pricingPlans = [
     {
@@ -38,6 +41,32 @@ const pricingPlans = [
 ];
 
 export const PricingPage: React.FC = () => {
+    const { user, setUser } = useAppStore();
+    const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
+
+    const handleUpgrade = async () => {
+        if (!user) {
+            navigate('/login');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            // Simulate network delay for realistic feel
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            const updatedUser = await upgradeToPro();
+            setUser(updatedUser);
+            navigate('/profile');
+        } catch (error) {
+            console.error('Upgrade failed:', error);
+            // In a real app, show a toast here
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-[rgb(var(--color-bg))] py-12 transition-theme">
             <div className="max-w-6xl mx-auto px-6">
@@ -96,8 +125,19 @@ export const PricingPage: React.FC = () => {
                             <Button
                                 variant={plan.highlighted ? 'primary' : 'secondary'}
                                 className="w-full"
+                                onClick={plan.highlighted ? handleUpgrade : () => navigate('/problems')}
+                                disabled={loading || (plan.highlighted && user?.role === 'pro')}
                             >
-                                {plan.cta}
+                                {loading && plan.highlighted ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Processing...
+                                    </>
+                                ) : plan.highlighted && user?.role === 'pro' ? (
+                                    'Current Plan'
+                                ) : (
+                                    plan.cta
+                                )}
                             </Button>
                         </Card>
                     ))}

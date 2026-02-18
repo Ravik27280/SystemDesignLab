@@ -29,6 +29,11 @@ export const WorkspacePage: React.FC = () => {
             if (!problemId) return;
 
             try {
+                // Clear any previous feedback/state immediately
+                useAppStore.getState().setFeedback(null);
+                setNodes([]);
+                setEdges([]);
+
                 setIsLoadingDesign(true);
                 const existingDesign = await designsApi.getDesignByProblemId(problemId);
 
@@ -41,14 +46,9 @@ export const WorkspacePage: React.FC = () => {
                     // Load feedback if available
                     if (existingDesign.feedback) {
                         useAppStore.getState().setFeedback(existingDesign.feedback);
-                    } else {
-                        useAppStore.getState().setFeedback(null);
                     }
                 } else {
                     // No existing design - start with empty canvas
-                    setNodes([]);
-                    setEdges([]);
-                    useAppStore.getState().setFeedback(null);
                     console.log('ℹ️ No existing design found, starting fresh');
                 }
             } catch (error) {
@@ -56,6 +56,7 @@ export const WorkspacePage: React.FC = () => {
                 // Start with empty canvas on error
                 setNodes([]);
                 setEdges([]);
+                useAppStore.getState().setFeedback(null);
             } finally {
                 setIsLoadingDesign(false);
             }

@@ -37,6 +37,7 @@ interface AppState {
     edges: FlowEdge[];
     setNodes: (nodes: FlowNode[]) => void;
     setEdges: (edges: FlowEdge[]) => void;
+    updateNodeData: (id: string, data: any) => void;
 
     // Selected node for configuration panel
     selectedNode: FlowNode | null;
@@ -63,7 +64,17 @@ export const useAppStore = create<AppState>()(
             },
             logout: () => {
                 localStorage.removeItem('token');
-                set({ token: null, user: null, designs: [], problems: [] });
+                set({
+                    token: null,
+                    user: null,
+                    designs: [],
+                    problems: [],
+                    feedback: null,
+                    nodes: [],
+                    edges: [],
+                    currentProblem: null,
+                    selectedNode: null
+                });
             },
 
             // User
@@ -93,6 +104,22 @@ export const useAppStore = create<AppState>()(
             edges: [],
             setNodes: (nodes) => set({ nodes }),
             setEdges: (edges) => set({ edges }),
+            updateNodeData: (id, data) =>
+                set((state) => {
+                    const updatedNodes = state.nodes.map((node) => {
+                        if (node.id === id) {
+                            return { ...node, data: { ...node.data, ...data } };
+                        }
+                        return node;
+                    });
+
+                    // Also update selectedNode if it's the one being modified
+                    const updatedSelectedNode = state.selectedNode?.id === id
+                        ? { ...state.selectedNode, data: { ...state.selectedNode.data, ...data } }
+                        : state.selectedNode;
+
+                    return { nodes: updatedNodes, selectedNode: updatedSelectedNode };
+                }),
 
             // Selected node
             selectedNode: null,
@@ -111,6 +138,8 @@ export const useAppStore = create<AppState>()(
                 currentProblem: state.currentProblem,
                 problems: state.problems,
                 feedback: state.feedback,
+                nodes: state.nodes,
+                edges: state.edges,
             }),
         }
     )

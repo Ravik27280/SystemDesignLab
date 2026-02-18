@@ -8,21 +8,13 @@ import { ProblemsPage } from './pages/ProblemsPage';
 import { WorkspacePage } from './pages/WorkspacePage';
 import { PricingPage } from './pages/PricingPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { ProfilePage } from './pages/ProfilePage';
+import { ComingSoonPage } from './pages/ComingSoonPage';
 
 // Placeholder pages
-const DesignsPage = () => (
-  <div className="p-6">
-    <h2 className="text-2xl font-bold text-[rgb(var(--color-text-primary))]">My Designs</h2>
-    <p className="text-[rgb(var(--color-text-secondary))] mt-2">Your saved designs will appear here</p>
-  </div>
-);
+import { DesignsPage } from './pages/DesignsPage';
 
-const PracticeModePage = () => (
-  <div className="p-6">
-    <h2 className="text-2xl font-bold text-[rgb(var(--color-text-primary))]">Practice Mode</h2>
-    <p className="text-[rgb(var(--color-text-secondary))] mt-2">Timed practice sessions coming soon</p>
-  </div>
-);
+import { PracticeModePage } from './pages/PracticeModePage';
 
 const LeaderboardPage = () => (
   <div className="p-6">
@@ -56,6 +48,8 @@ function App() {
           <Route path="/practice" element={<PracticeModePage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/coming-soon" element={<ComingSoonPage />} />
         </Route>
 
         {/* Workspace route - fullscreen without layout */}

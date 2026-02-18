@@ -19,7 +19,7 @@ export interface AuthResponse {
             id: string;
             name: string;
             email: string;
-            plan: 'free' | 'pro';
+            role: 'free' | 'pro';
         };
     };
     message: string;
@@ -47,4 +47,12 @@ export const login = async (data: LoginRequest): Promise<AuthResponse> => {
 export const googleLogin = async (credential: string): Promise<AuthResponse> => {
     const response = await apiClient.post<AuthResponse>('/auth/google', { credential });
     return response.data;
+};
+
+/**
+ * Upgrade to Pro
+ */
+export const upgradeToPro = async (): Promise<{ success: boolean; user: any; message: string }> => {
+    const response = await apiClient.post('/payment/upgrade');
+    return response.data.data;
 };

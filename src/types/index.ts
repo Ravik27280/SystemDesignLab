@@ -4,7 +4,7 @@ export interface User {
     id: string;
     name: string;
     email: string;
-    plan: 'free' | 'pro';
+    role: 'free' | 'pro';
     avatar?: string;
 }
 
@@ -66,10 +66,18 @@ export interface FlowEdge {
 
 export interface FeedbackResult {
     score: number;
+    summary?: string;
+    requirementAnalysis?: {
+        requirement: string;
+        met: boolean;
+        comment: string;
+    }[];
     strengths: string[];
     warnings: string[];
     errors: string[];
     suggestions: string[];
+    securityAnalysis?: string;
+    scalabilityAnalysis?: string;
 }
 
 export type Theme = 'light' | 'dark';

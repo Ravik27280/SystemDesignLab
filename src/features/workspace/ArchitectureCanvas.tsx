@@ -5,10 +5,13 @@ import {
     Controls,
     MiniMap,
     addEdge,
-    useNodesState,
-    useEdgesState,
+    applyNodeChanges,
+    applyEdgeChanges,
     type Connection,
     type Node,
+    type Edge,
+    type NodeChange,
+    type EdgeChange,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Button } from '../../components/Button';
@@ -31,13 +34,22 @@ const edgeTypes = {
 // const initialNodes: Node[] = [];
 
 export const ArchitectureCanvas: React.FC = () => {
-    const { nodes: storeNodes, edges: storeEdges, setNodes, setEdges, setSelectedNode, currentProblem } = useAppStore();
-    const [nodes, setNodesState, onNodesChange] = useNodesState(storeNodes);
-    const [edges, setEdgesState, onEdgesChange] = useEdgesState(storeEdges);
+    const {
+        nodes,
+        edges,
+        setNodes,
+        setEdges,
+        setSelectedNode,
+        currentProblem
+    } = useAppStore();
+
+    // We don't use useNodesState/useEdgesState anymore because we want 
+    // single source of truth from the store to handle updates from ConfigurationPanel
+
     const [evaluating, setEvaluating] = useState(false);
 
     // History for undo/redo
-    const [history, setHistory] = useState<{ nodes: Node[]; edges: any[] }[]>([]);
+    const [history, setHistory] = useState<{ nodes: Node[]; edges: Edge[] }[]>([]);
     const [historyIndex, setHistoryIndex] = useState(-1);
 
     // Animation state
@@ -46,42 +58,81 @@ export const ArchitectureCanvas: React.FC = () => {
     const [activeEdges, setActiveEdges] = useState<Set<string>>(new Set());
     const abortControllerRef = useRef<AbortController | null>(null);
 
-    // Sync with store
-    React.useEffect(() => {
-        setNodes(nodes as any);
-        setEdges(edges as any);
-    }, [nodes, edges, setNodes, setEdges]);
+    // Handle nodes change
+    const onNodesChange = useCallback(
+        (changes: NodeChange[]) => {
+            setNodes(applyNodeChanges(changes, nodes));
+        },
+        [nodes, setNodes]
+    );
 
-    // Save to history when nodes or edges change
+    // Handle edges change
+    const onEdgesChange = useCallback(
+        (changes: EdgeChange[]) => {
+            setEdges(applyEdgeChanges(changes, edges));
+        },
+        [edges, setEdges]
+    );
+
+    // Save to history when nodes or edges change (debounced or on interaction end ideal, but here simplistic)
+    // To avoid too many history entries during drag, we might miss intermediate states or flood history.
+    // For a robust undo/redo, we usually capture history on 'dragEnd' or explicit actions.
+    // For now, let's keep it simple: we might need a better trigger than just useEffect on [nodes, edges].
+    // But adhering to previous logic:
     useEffect(() => {
-        if (nodes.length > 0 || edges.length > 0) {
-            const newHistory = history.slice(0, historyIndex + 1);
-            newHistory.push({ nodes, edges });
-            setHistory(newHistory);
-            setHistoryIndex(newHistory.length - 1);
+        // Only push to history if it's different from current history tip
+        if (nodes.length === 0 && edges.length === 0 && history.length === 0) return;
+
+        const lastEntry = history[historyIndex];
+        const isSame = lastEntry &&
+            JSON.stringify(lastEntry.nodes) === JSON.stringify(nodes) &&
+            JSON.stringify(lastEntry.edges) === JSON.stringify(edges);
+
+        if (!isSame) {
+            // Using a timeout to debounce history updates could be better, 
+            // but let's stick to the minimal change to verify controlled state first.
+            // Actually, continuously saving every drag frame to history is bad for performance and user experience.
+            // A better approach is to not use useEffect but hook into onNodeDragStop.
+            // For now, to minimize refactor risk, I will comment out the automatic effect 
+            // and maybe implement a manual snapshot or rely on key events.
+            // Or better: Use a simple debounce here.
         }
     }, [nodes, edges]);
 
-    // Keyboard shortcuts for undo/redo
+    // Re-implementing history with debounce could be complex. 
+    // Let's rely on standard actions (add, delete, connect) pushing to history?
+    // Or just accept that for MVP, undo/redo might be a bit spammy or we skip fixing it perfectly right now.
+    // Let's keep the useEffect but add a check to not run while animating?
+
+    // Actually, simply using the store state is the goal.
+    // I will simplify history for now: snapshot only on major actions if possible, 
+    // or keep the effect but accept it runs often.
+
+    // Effect to snapshot history
     useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-                e.preventDefault();
-                handleUndo();
-            } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
-                e.preventDefault();
-                handleRedo();
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [historyIndex]);
+        if (!isAnimating) {
+            const timer = setTimeout(() => {
+                const lastEntry = history[historyIndex];
+                // Simple check to avoid duplicate states if possible (expensive stringify but ok for MVP size)
+                if (!lastEntry || JSON.stringify(lastEntry.nodes) !== JSON.stringify(nodes) || JSON.stringify(lastEntry.edges) !== JSON.stringify(edges)) {
+                    const newHistory = history.slice(0, historyIndex + 1);
+                    newHistory.push({ nodes, edges });
+                    // Limit history size
+                    if (newHistory.length > 20) newHistory.shift();
+                    setHistory(newHistory);
+                    setHistoryIndex(newHistory.length - 1);
+                }
+            }, 500); // 500ms debounce
+            return () => clearTimeout(timer);
+        }
+    }, [nodes, edges, isAnimating]);
+
 
     const onConnect = useCallback(
         (params: Connection) => {
-            setEdgesState((eds) => addEdge(params, eds));
+            setEdges(addEdge(params, edges));
         },
-        [setEdgesState]
+        [edges, setEdges]
     );
 
     const onNodeClick = useCallback(
@@ -101,14 +152,14 @@ export const ArchitectureCanvas: React.FC = () => {
             },
             data: { label, nodeType: type },
         };
-        setNodesState((nds) => [...nds, newNode]);
+        setNodes([...nodes, newNode]);
     };
 
     const handleUndo = () => {
         if (historyIndex > 0) {
             const prevState = history[historyIndex - 1];
-            setNodesState(prevState.nodes);
-            setEdgesState(prevState.edges);
+            setNodes(prevState.nodes);
+            setEdges(prevState.edges);
             setHistoryIndex(historyIndex - 1);
         }
     };
@@ -116,16 +167,16 @@ export const ArchitectureCanvas: React.FC = () => {
     const handleRedo = () => {
         if (historyIndex < history.length - 1) {
             const nextState = history[historyIndex + 1];
-            setNodesState(nextState.nodes);
-            setEdgesState(nextState.edges);
+            setNodes(nextState.nodes);
+            setEdges(nextState.edges);
             setHistoryIndex(historyIndex + 1);
         }
     };
 
     const handleClearAll = () => {
         if (window.confirm('Are you sure you want to clear all nodes and connections?')) {
-            setNodesState([]);
-            setEdgesState([]);
+            setNodes([]);
+            setEdges([]);
         }
     };
 
@@ -302,7 +353,7 @@ export const ArchitectureCanvas: React.FC = () => {
             // Let's just add it at a default position + some random offset
             addNode(type, label);
         },
-        [setNodesState]
+        [nodes, setNodes] // Updated dependency
     );
 
     const handleEvaluate = async () => {

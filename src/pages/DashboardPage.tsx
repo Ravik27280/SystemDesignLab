@@ -1,10 +1,48 @@
-import React from 'react';
-import { ArrowRight, Clock } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ArrowRight, Clock, Plus } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Badge } from '../components/Badge';
+import { getUserDesigns } from '../api/designs.api';
+import { getProblems } from '../api/problems.api';
+import type { Design, Problem } from '../types';
 
 export const DashboardPage: React.FC = () => {
+    const navigate = useNavigate();
+    const [recentDesigns, setRecentDesigns] = useState<Design[]>([]);
+    const [problemsMap, setProblemsMap] = useState<Record<string, Problem>>({});
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const [designs, problems] = await Promise.all([
+                    getUserDesigns(),
+                    getProblems()
+                ]);
+
+                // Sort designs by updatedAt desc and take top 5
+                const sortedDesigns = designs.sort((a, b) =>
+                    new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+                ).slice(0, 5);
+
+                setRecentDesigns(sortedDesigns);
+
+                const pMap: Record<string, Problem> = {};
+                problems.forEach(p => {
+                    pMap[p.id] = p;
+                });
+                setProblemsMap(pMap);
+            } catch (error) {
+                console.error('Failed to fetch dashboard data', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
     return (
         <div className="p-6 space-y-6">
             {/* Welcome Section */}
@@ -54,43 +92,66 @@ export const DashboardPage: React.FC = () => {
                     <h3 className="text-lg font-semibold text-[rgb(var(--color-text-primary))]">
                         Recent Designs
                     </h3>
-                    <Button variant="ghost" size="sm">
-                        View All
-                    </Button>
+                    {recentDesigns.length > 0 && (
+                        <Button variant="ghost" size="sm" onClick={() => navigate('/designs')}>
+                            View All
+                        </Button>
+                    )}
                 </div>
-                <div className="space-y-3">
-                    {[
-                        { name: 'Instagram System Design', date: '2 days ago', difficulty: 'medium' },
-                        { name: 'URL Shortener', date: '5 days ago', difficulty: 'easy' },
-                    ].map((design, idx) => (
-                        <div
-                            key={idx}
-                            className="p-4 rounded-app bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border))] hover:border-[rgb(var(--color-primary))] transition-all cursor-pointer"
-                        >
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <h4 className="font-medium text-[rgb(var(--color-text-primary))]">
-                                        {design.name}
-                                    </h4>
-                                    <p className="text-sm text-[rgb(var(--color-text-secondary))] mt-1">
-                                        Last edited {design.date}
-                                    </p>
-                                </div>
-                                <Badge
-                                    variant={
-                                        design.difficulty === 'easy'
-                                            ? 'success'
-                                            : design.difficulty === 'medium'
-                                                ? 'warning'
-                                                : 'error'
-                                    }
+
+                {loading ? (
+                    <div className="py-8 text-center text-[rgb(var(--color-text-secondary))]">
+                        Loading designs...
+                    </div>
+                ) : recentDesigns.length > 0 ? (
+                    <div className="space-y-3">
+                        {recentDesigns.map((design) => {
+                            const problem = problemsMap[design.problemId];
+                            return (
+                                <div
+                                    key={design.id}
+                                    className="p-4 rounded-app bg-[rgb(var(--color-surface))] border border-[rgb(var(--color-border))] hover:border-[rgb(var(--color-primary))] transition-all cursor-pointer"
+                                    onClick={() => navigate(`/workspace/${design.problemId}`)}
                                 >
-                                    {design.difficulty}
-                                </Badge>
-                            </div>
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <h4 className="font-medium text-[rgb(var(--color-text-primary))]">
+                                                {design.name || problem?.title || 'Untitled Design'}
+                                            </h4>
+                                            <p className="text-sm text-[rgb(var(--color-text-secondary))] mt-1">
+                                                {problem?.title ? `${problem.title} • ` : ''}Last edited {new Date(design.updatedAt).toLocaleDateString()}
+                                            </p>
+                                        </div>
+                                        {problem && (
+                                            <Badge
+                                                variant={
+                                                    problem.difficulty === 'Easy'
+                                                        ? 'success'
+                                                        : problem.difficulty === 'Medium'
+                                                            ? 'warning'
+                                                            : 'error'
+                                                }
+                                            >
+                                                {problem.difficulty}
+                                            </Badge>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <div className="py-12 text-center border-2 border-dashed border-[rgb(var(--color-border))] rounded-xl">
+                        <div className="w-12 h-12 bg-[rgb(var(--color-surface))] rounded-full flex items-center justify-center mx-auto mb-3">
+                            <Plus className="w-6 h-6 text-[rgb(var(--color-text-secondary))]" />
                         </div>
-                    ))}
-                </div>
+                        <h4 className="text-[rgb(var(--color-text-primary))] font-medium mb-1">No designs yet</h4>
+                        <p className="text-[rgb(var(--color-text-secondary))] text-sm mb-4">Start your first system design problem</p>
+                        <Button variant="primary" size="sm" onClick={() => navigate('/problems')}>
+                            Browse Problems
+                        </Button>
+                    </div>
+                )}
             </Card>
         </div>
     );

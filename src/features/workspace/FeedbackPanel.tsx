@@ -201,7 +201,7 @@ export const FeedbackPanel: React.FC = () => {
                                             {getScoreLabel(feedback.score)}
                                         </p>
                                         <p className="text-xs text-[rgb(var(--color-text-secondary))] mt-1 font-medium">
-                                            Architecture analysis complete based on scalability, reliability, and best practices.
+                                            {feedback.summary || "Architecture analysis complete."}
                                         </p>
                                     </div>
                                 </div>
@@ -210,13 +210,49 @@ export const FeedbackPanel: React.FC = () => {
 
                         {/* Collapsible Sections with Premium Style */}
                         <div className="space-y-4 px-1">
+                            {/* Requirement Analysis */}
+                            {feedback.requirementAnalysis && (
+                                <FeedbackSection
+                                    title="Requirement Check"
+                                    count={feedback.requirementAnalysis.length}
+                                    icon={<CheckCircle2 className="w-6 h-6" />}
+                                    colorClass="text-blue-500"
+                                    defaultOpen={true}
+                                >
+                                    {feedback.requirementAnalysis.map((req: any, idx: number) => (
+                                        <div key={idx} className={cn(
+                                            "p-4 rounded-2xl border flex gap-4 shadow-sm transition-all duration-300",
+                                            req.met
+                                                ? "bg-emerald-500/5 border-emerald-500/10"
+                                                : "bg-rose-500/5 border-rose-500/10"
+                                        )}>
+                                            <div className={cn(
+                                                "mt-0.5 p-1.5 rounded-full h-fit",
+                                                req.met ? "bg-emerald-500/10" : "bg-rose-500/10"
+                                            )}>
+                                                {req.met
+                                                    ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                                                    : <XCircle className="w-4 h-4 text-rose-500" />
+                                                }
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="font-semibold text-sm text-[rgb(var(--color-text-primary))]">{req.requirement}</p>
+                                                <p className="text-xs text-[rgb(var(--color-text-secondary))] mt-1 leading-relaxed">
+                                                    {req.comment}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </FeedbackSection>
+                            )}
+
                             {/* Critical Issues */}
                             <FeedbackSection
                                 title="Critical Issues"
                                 count={feedback.errors?.length || 0}
                                 icon={<XCircle className="w-6 h-6" />}
                                 colorClass="text-rose-500"
-                                defaultOpen={true}
+                                defaultOpen={feedback.errors?.length > 0}
                             >
                                 {feedback.errors?.map((error, idx) => (
                                     <div key={idx} className="p-4 rounded-2xl bg-gradient-to-br from-rose-500/10 to-rose-500/5 border border-rose-500/10 flex gap-4 shadow-sm hover:shadow-md hover:scale-[1.01] transition-all duration-300">
@@ -248,6 +284,38 @@ export const FeedbackPanel: React.FC = () => {
                                     </div>
                                 ))}
                             </FeedbackSection>
+
+                            {/* Security Analysis */}
+                            {feedback.securityAnalysis && (
+                                <FeedbackSection
+                                    title="Security Analysis"
+                                    count={1}
+                                    icon={<ShieldAlert className="w-6 h-6" />}
+                                    colorClass="text-indigo-500"
+                                >
+                                    <div className="p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/10">
+                                        <p className="text-sm text-[rgb(var(--color-text-secondary))] leading-relaxed">
+                                            {feedback.securityAnalysis}
+                                        </p>
+                                    </div>
+                                </FeedbackSection>
+                            )}
+
+                            {/* Scalability Analysis */}
+                            {feedback.scalabilityAnalysis && (
+                                <FeedbackSection
+                                    title="Scalability Analysis"
+                                    count={1}
+                                    icon={<Sparkles className="w-6 h-6" />}
+                                    colorClass="text-cyan-500"
+                                >
+                                    <div className="p-4 rounded-2xl bg-cyan-500/5 border border-cyan-500/10">
+                                        <p className="text-sm text-[rgb(var(--color-text-secondary))] leading-relaxed">
+                                            {feedback.scalabilityAnalysis}
+                                        </p>
+                                    </div>
+                                </FeedbackSection>
+                            )}
 
                             {/* Key Strengths */}
                             <FeedbackSection
