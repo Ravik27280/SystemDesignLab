@@ -3,8 +3,7 @@ import { useParams } from 'react-router-dom';
 import { WorkspaceLayout } from '../features/workspace/WorkspaceLayout';
 import { RequirementsPanel } from '../features/workspace/RequirementsPanel';
 import { ArchitectureCanvas } from '../features/workspace/ArchitectureCanvas';
-import { ConfigurationPanel } from '../features/workspace/ConfigurationPanel';
-import { FeedbackPanel } from '../features/workspace/FeedbackPanel';
+import { WorkspaceRightPanel } from '../features/workspace/WorkspaceRightPanel';
 import { useAppStore } from '../store';
 import * as designsApi from '../api/designs.api';
 
@@ -86,8 +85,7 @@ export const WorkspacePage: React.FC = () => {
             <WorkspaceLayout
                 left={<RequirementsPanel problem={currentProblem} />}
                 center={<ArchitectureCanvas />}
-                right={<ConfigurationPanel />}
-                bottom={<FeedbackPanel />}
+                right={<WorkspaceRightPanel />}
             />
         </div>
     );

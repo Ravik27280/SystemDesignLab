@@ -1,36 +1,42 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, Clock, Plus } from 'lucide-react';
+import { ArrowRight, Clock, Plus, Trophy, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Badge } from '../components/Badge';
 import { getUserDesigns } from '../api/designs.api';
 import { getProblems } from '../api/problems.api';
+import { leaderboardApi, type UserRank } from '../api/leaderboard.api';
 import type { Design, Problem } from '../types';
 
 export const DashboardPage: React.FC = () => {
     const navigate = useNavigate();
     const [recentDesigns, setRecentDesigns] = useState<Design[]>([]);
     const [problemsMap, setProblemsMap] = useState<Record<string, Problem>>({});
+    const [userRank, setUserRank] = useState<UserRank | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [designs, problems] = await Promise.all([
+                const [designs, problems, rankData] = await Promise.all([
                     getUserDesigns(),
-                    getProblems()
+                    getProblems(),
+                    leaderboardApi.getUserRank().catch(() => null)
                 ]);
 
+                // @ts-ignore
+                setUserRank(rankData?.data || rankData);
+
                 // Sort designs by updatedAt desc and take top 5
-                const sortedDesigns = designs.sort((a, b) =>
+                const sortedDesigns = designs.sort((a: Design, b: Design) =>
                     new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
                 ).slice(0, 5);
 
                 setRecentDesigns(sortedDesigns);
 
                 const pMap: Record<string, Problem> = {};
-                problems.forEach(p => {
+                problems.forEach((p: Problem) => {
                     pMap[p.id] = p;
                 });
                 setProblemsMap(pMap);
@@ -43,6 +49,7 @@ export const DashboardPage: React.FC = () => {
 
         fetchData();
     }, []);
+
     return (
         <div className="p-6 space-y-6">
             {/* Welcome Section */}
@@ -54,6 +61,30 @@ export const DashboardPage: React.FC = () => {
                     Continue your system design journey
                 </p>
             </div>
+
+            {/* Stats Overview */}
+            {userRank && (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Card className="flex items-center gap-4 p-4 bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-500/20">
+                        <div className="p-3 bg-amber-500/20 rounded-full text-amber-600 dark:text-amber-400">
+                            <Trophy className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <p className="text-sm text-[rgb(var(--color-text-secondary))] font-medium">Global Rank</p>
+                            <p className="text-2xl font-bold text-[rgb(var(--color-text-primary))]">#{userRank.rank}</p>
+                        </div>
+                    </Card>
+                    <Card className="flex items-center gap-4 p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-500/20">
+                        <div className="p-3 bg-blue-500/20 rounded-full text-blue-600 dark:text-blue-400">
+                            <Star className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <p className="text-sm text-[rgb(var(--color-text-secondary))] font-medium">Total Score</p>
+                            <p className="text-2xl font-bold text-[rgb(var(--color-text-primary))]">{userRank.totalScore}</p>
+                        </div>
+                    </Card>
+                </div>
+            )}
 
             {/* Quick Start */}
             <Card>
@@ -68,7 +99,7 @@ export const DashboardPage: React.FC = () => {
                         <p className="text-sm text-[rgb(var(--color-text-secondary))] mb-3">
                             Choose from our collection of real-world system design problems
                         </p>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => navigate('/problems')}>
                             Browse Problems <ArrowRight className="w-4 h-4 ml-1 inline" />
                         </Button>
                     </div>
@@ -79,7 +110,7 @@ export const DashboardPage: React.FC = () => {
                         <p className="text-sm text-[rgb(var(--color-text-secondary))] mb-3">
                             Timed practice sessions to simulate real interviews
                         </p>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => navigate('/practice')}>
                             Start Practice <Clock className="w-4 h-4 ml-1 inline" />
                         </Button>
                     </div>

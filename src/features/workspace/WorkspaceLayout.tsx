@@ -9,7 +9,7 @@ interface WorkspaceLayoutProps {
     left: React.ReactNode;
     center: React.ReactNode;
     right: React.ReactNode;
-    bottom: React.ReactNode;
+    bottom?: React.ReactNode;
 }
 
 export const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({
@@ -21,6 +21,33 @@ export const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({
     const [leftOpen, setLeftOpen] = useState(true);
     const [rightOpen, setRightOpen] = useState(true);
     const [bottomOpen, setBottomOpen] = useState(true);
+    const [bottomHeight, setBottomHeight] = useState(384); // Default 96 * 4 = 384px (h-96)
+    const isResizingRef = React.useRef(false);
+
+    const startResizing = React.useCallback((e: React.MouseEvent) => {
+        isResizingRef.current = true;
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', stopResizing);
+        document.body.style.cursor = 'ns-resize';
+        document.body.style.userSelect = 'none';
+    }, []);
+
+    const stopResizing = React.useCallback(() => {
+        isResizingRef.current = false;
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', stopResizing);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+    }, []);
+
+    const handleMouseMove = React.useCallback((e: MouseEvent) => {
+        if (!isResizingRef.current) return;
+        const newHeight = window.innerHeight - e.clientY;
+        // Min height 100px, Max height 80% of screen
+        if (newHeight >= 100 && newHeight <= window.innerHeight * 0.8) {
+            setBottomHeight(newHeight);
+        }
+    }, []);
 
     return (
         <div className="h-full flex flex-col overflow-hidden">
@@ -66,17 +93,19 @@ export const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({
                     </Button>
 
                     {/* Bottom Toggle Button */}
-                    <div className="absolute left-1/2 -translate-x-1/2 bottom-0 z-30 flex items-center justify-center translate-y-1/2">
-                        <Button
-                            size="icon"
-                            variant="secondary"
-                            className="rounded-full w-8 h-6 p-0 flex items-center justify-center shadow-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-card))] text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-primary))]"
-                            onClick={() => setBottomOpen(!bottomOpen)}
-                            title={bottomOpen ? "Collapse Panel" : "Expand Panel"}
-                        >
-                            {bottomOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-                        </Button>
-                    </div>
+                    {bottom && (
+                        <div className="absolute left-1/2 -translate-x-1/2 bottom-0 z-30 flex items-center justify-center translate-y-1/2">
+                            <Button
+                                size="icon"
+                                variant="secondary"
+                                className="rounded-full w-8 h-6 p-0 flex items-center justify-center shadow-md border border-[rgb(var(--color-border))] bg-[rgb(var(--color-card))] text-[rgb(var(--color-text-secondary))] hover:text-[rgb(var(--color-primary))]"
+                                onClick={() => setBottomOpen(!bottomOpen)}
+                                title={bottomOpen ? "Collapse Panel" : "Expand Panel"}
+                            >
+                                {bottomOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                            </Button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Right Panel - Configuration */}
@@ -93,16 +122,24 @@ export const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({
             </div>
 
             {/* Bottom - Feedback */}
-            <div
-                className={cn(
-                    "transition-all duration-300 ease-in-out border-t border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] relative flex flex-col",
-                    bottomOpen ? "h-96" : "h-0 border-t-0"
-                )}
-            >
-                <div className="h-full overflow-hidden">
-                    {bottom}
+            {bottom && (
+                <div
+                    className={cn(
+                        "transition-all duration-300 ease-in-out border-t border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] relative flex flex-col",
+                        bottomOpen ? "" : "h-0 border-t-0"
+                    )}
+                    style={{ height: bottomOpen ? bottomHeight : 0 }}
+                >
+                    {/* Resize Handle */}
+                    <div
+                        className="absolute top-0 left-0 right-0 h-1 cursor-ns-resize z-50 hover:bg-violet-500/50 transition-colors"
+                        onMouseDown={startResizing}
+                    />
+                    <div className="h-full overflow-hidden">
+                        {bottom}
+                    </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 };

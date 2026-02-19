@@ -7,8 +7,7 @@ import {
     Sparkles,
     ShieldAlert,
     Lightbulb,
-    ChevronDown,
-    ChevronRight
+    ChevronDown
 } from 'lucide-react';
 import { Panel } from '../../components/Panel';
 import { useAppStore } from '../../store';
@@ -145,9 +144,22 @@ export const FeedbackPanel: React.FC = () => {
             <Panel
                 title="AI Architecture Review"
                 headerAction={
-                    <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20 shadow-sm backdrop-blur-sm">
-                        <Sparkles className="w-3.5 h-3.5 text-violet-500 animate-pulse" />
-                        <span className="text-[10px] font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500 uppercase tracking-wider">Gemini 2.0 Pro</span>
+                    <div className="flex items-center gap-3">
+                        {feedback && (
+                            <div className={cn(
+                                "flex items-center gap-2 px-3 py-1 rounded-full border shadow-sm backdrop-blur-sm",
+                                feedback.score >= 80 ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" :
+                                    feedback.score >= 60 ? "bg-amber-500/10 border-amber-500/20 text-amber-500" :
+                                        "bg-rose-500/10 border-rose-500/20 text-rose-500"
+                            )}>
+                                <span className="text-[10px] font-bold uppercase tracking-wider">Score</span>
+                                <span className="text-sm font-black">{feedback.score}</span>
+                            </div>
+                        )}
+                        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 border border-violet-500/20 shadow-sm backdrop-blur-sm">
+                            <Sparkles className="w-3.5 h-3.5 text-violet-500 animate-pulse" />
+                            <span className="text-[10px] font-bold text-transparent bg-clip-text bg-gradient-to-r from-violet-500 to-fuchsia-500 uppercase tracking-wider">Gemini 2.0 Pro</span>
+                        </div>
                     </div>
                 }
             >
@@ -174,18 +186,18 @@ export const FeedbackPanel: React.FC = () => {
                         <div className="relative overflow-hidden rounded-3xl p-1 bg-gradient-to-br from-violet-500/20 via-purple-500/10 to-fuchsia-500/20 shadow-xl">
                             <div className="absolute inset-0 backdrop-blur-3xl bg-white/5 dark:bg-black/20" />
 
-                            <div className="relative bg-[rgb(var(--color-card))]/80 dark:bg-[rgb(var(--color-card))]/40 rounded-[1.3rem] p-6 border border-white/10 flex items-center gap-8 backdrop-blur-md">
+                            <div className="relative bg-[rgb(var(--color-card))]/80 dark:bg-[rgb(var(--color-card))]/40 rounded-[1.3rem] p-6 border border-white/10 flex flex-col items-center gap-4 backdrop-blur-md text-center">
                                 {/* Decorative elements */}
                                 <div className={cn("absolute -top-24 -right-24 w-64 h-64 rounded-full opacity-20 blur-3xl", scoreColor.replace('text-', 'bg-'))} />
                                 <div className={cn("absolute -bottom-24 -left-24 w-64 h-64 rounded-full opacity-20 blur-3xl delay-75", scoreColor.replace('text-', 'bg-'))} />
 
                                 <div className="relative group cursor-default">
                                     <div className="absolute inset-0 bg-white/20 rounded-full blur-xl opacity-0 group-hover:opacity-50 transition-opacity duration-500" />
-                                    <CircularProgress score={feedback.score} color={scoreColor} size={130} strokeWidth={10} />
+                                    <CircularProgress score={feedback.score} color={scoreColor} size={120} strokeWidth={8} />
                                 </div>
 
-                                <div className="flex-1 z-10 space-y-2">
-                                    <div className="inline-flex flex-col items-start">
+                                <div className="flex-1 z-10 space-y-2 w-full">
+                                    <div className="inline-flex flex-col items-center">
                                         <span className="text-xs font-bold uppercase tracking-widest text-[rgb(var(--color-text-tertiary))] mb-1">Overall Rating</span>
                                         <div className="flex items-baseline gap-3">
                                             <h2 className="text-4xl font-black text-[rgb(var(--color-text-primary))] drop-shadow-sm">
@@ -194,7 +206,7 @@ export const FeedbackPanel: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    <div className="h-px w-full bg-gradient-to-r from-[rgb(var(--color-border))] to-transparent" />
+                                    <div className="h-px w-full bg-gradient-to-r from-transparent via-[rgb(var(--color-border))] to-transparent" />
 
                                     <div>
                                         <p className={cn("font-bold text-lg", scoreColor)}>

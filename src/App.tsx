@@ -16,12 +16,7 @@ import { DesignsPage } from './pages/DesignsPage';
 
 import { PracticeModePage } from './pages/PracticeModePage';
 
-const LeaderboardPage = () => (
-  <div className="p-6">
-    <h2 className="text-2xl font-bold text-[rgb(var(--color-text-primary))]">Leaderboard</h2>
-    <p className="text-[rgb(var(--color-text-secondary))] mt-2">See how you rank against others</p>
-  </div>
-);
+import LeaderboardPage from './pages/LeaderboardPage';
 
 const SettingsPage = () => (
   <div className="p-6">
